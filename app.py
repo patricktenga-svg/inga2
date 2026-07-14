@@ -25,15 +25,15 @@ st.set_page_config(page_title="INGA II - AI Monitoring", page_icon="🏭", layou
 # ============================================================================
 @st.cache_data
 def load_historical_data(filepath="data/historical_inflows.csv"):
-    """Charge les données historiques depuis le fichier CSV."""
+    """Loading historical data from CSV file..."""
     if os.path.exists(filepath):
         df = pd.read_csv(filepath)
         df['date'] = pd.to_datetime(df['date'])
         df = df.sort_values('date')
-        st.success(f"✅ Données historiques chargées: {len(df)} jours ({df['date'].min().date()} au {df['date'].max().date()})")
+        st.success(f"✅ Historical data loaded: {len(df)} days ({df['date'].min().date()} to {df['date'].max().date()})")
         return df['inflow'].values
     else:
-        st.warning(f"⚠️ Fichier {filepath} non trouvé. Utilisation de données synthétiques.")
+        st.warning(f"⚠️ Fichier {filepath} not found. Using synthetic data instead.")
         # Générer des données synthétiques de secours
         synthetic_inflows = np.random.normal(42000, 5000, 2000)
         return synthetic_inflows
@@ -53,22 +53,22 @@ def load_models(historical_inflows=None):
     # Train forecaster if needed
     if not forecaster.is_trained:
         if historical_inflows is not None and len(historical_inflows) > 100:
-            with st.spinner("📈 Entraînement du modèle LSTM avec des données historiques..."):
+            with st.spinner("📈 Training LSTM model with historical data..."):
                 forecaster.train(historical_inflows, epochs=50)
                 forecaster.save("models/inga_ii")
-            st.success("✅ Modèle LSTM entraîné avec succès !")
+            st.success("✅ LSTM model trained successfully! (Loss: {loss:.4f}, Accuracy: {acc:.2%})")
         else:
-            st.warning("⚠️ Pas assez de données historiques. Le modèle LSTM utilisera un mécanisme de prédiction par défaut.")
+            st.warning("⚠️ Not enough historical data. Using default prediction mechanism.")
     
     # Train classifier if needed
     if not classifier.is_trained:
-        with st.spinner("🎯 Entraînement du classifieur de scénarios..."):
+        with st.spinner("🎯 Training scenario classifier..."):
             classifier.train()
             classifier.save("models/inga_ii")
     
     # Train anomaly detector if needed
     if not anomaly_detector.is_trained:
-        with st.spinner("🚨 Entraînement du détecteur d'anomalies..."):
+        with st.spinner("🚨 Training anomaly detector..."):
             anomaly_detector.train()
             anomaly_detector.save("models/inga_ii")
     
@@ -188,9 +188,15 @@ def main():
     
     # Display info about training
     if forecaster.is_trained:
-        st.success("✅ Tous les modèles IA sont prêts et entraînés!")
+        st.success("""✅ **All AI models are ready and trained!**  
+        - LSTM Forecaster: ✅  
+        - Scenario Classifier: ✅  
+        - Anomaly Detector: ✅  
+        - RL Agent: ✅
+        """)
     else:
-        st.info("ℹ️ Le système fonctionne avec des prédictions par défaut en attendant plus de données historiques.")
+        # Warning message
+        st.warning("⚠️ The system is currently using default predictions until more historical data becomes available.")
     
     st.markdown("---")
     

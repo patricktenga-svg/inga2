@@ -38,41 +38,77 @@ st.set_page_config(
 
 
 # ============================================================================
-# CUSTOM CSS WITH BACKGROUND IMAGE
+# ADAPTIVE THEME CSS (Light & Dark Mode Compatible)
 # ============================================================================
 st.markdown("""
 <style>
-    /* Main background */
-    .stApp {
-        background-color: #f0f4f8;
+    /* ===== VARIABLES ADAPTIVES ===== */
+    :root {
+        --bg-primary: #f0f4f8;
+        --bg-secondary: #ffffff;
+        --text-primary: #1a2a3a;
+        --text-secondary: #2c3e50;
+        --border-color: #e8ecf0;
+        --shadow-color: rgba(0,0,0,0.08);
+        --card-bg: #ffffff;
+        --badge-bg: rgba(0,0,0,0.05);
+        --badge-text: #555;
+        --success-bg: #d4edda;
+        --warning-bg: #fff3cd;
+        --danger-bg: #f8d7da;
+        --info-bg: #d1ecf1;
     }
     
-    /* Header with background image */
+    /* ===== DARK MODE ===== */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --text-primary: #e8e8e8;
+            --text-secondary: #b0b0b0;
+            --border-color: #2a2a4a;
+            --shadow-color: rgba(0,0,0,0.4);
+            --card-bg: #1e2a4a;
+            --badge-bg: rgba(255,255,255,0.08);
+            --badge-text: #ccc;
+            --success-bg: #1a3a2a;
+            --warning-bg: #3a2a1a;
+            --danger-bg: #3a1a1a;
+            --info-bg: #1a2a3a;
+        }
+    }
+    
+    /* ===== DARK MODE OVERRIDE (Streamlit theme) ===== */
+    [data-testid="stAppViewContainer"] {
+        background-color: var(--bg-primary);
+    }
+    
+    /* ===== HEADER ===== */
     .header-container {
-        background: linear-gradient(135deg, rgba(26, 82, 118, 0.85), rgba(46, 134, 193, 0.75)), 
-                    url('data/INGA.jpg');
+        background: linear-gradient(135deg, rgba(26, 82, 118, 0.92), rgba(46, 134, 193, 0.85)), 
+                    url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Inga_Dam_DRC_2020.jpg/1280px-Inga_Dam_DRC_2020.jpg');
         background-size: cover;
         background-position: center;
         padding: 40px 30px;
         border-radius: 20px;
         margin-bottom: 30px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         border: 1px solid rgba(255,255,255,0.1);
     }
     
     .header-title {
-        color: white;
+        color: white !important;
         font-size: 42px;
         font-weight: 700;
-        text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
         margin: 0;
         letter-spacing: 1px;
     }
     
     .header-subtitle {
-        color: rgba(255,255,255,0.9);
+        color: rgba(255,255,255,0.95) !important;
         font-size: 18px;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
         margin-top: 5px;
     }
     
@@ -82,43 +118,152 @@ st.markdown("""
         backdrop-filter: blur(10px);
         padding: 5px 20px;
         border-radius: 20px;
-        color: white;
+        color: white !important;
         font-size: 12px;
         margin-top: 10px;
-        border: 1px solid rgba(255,255,255,0.3);
+        border: 1px solid rgba(255,255,255,0.25);
     }
     
-    /* Metric cards */
+    /* ===== METRIC CARDS ===== */
     .metric-card {
-        background: white;
+        background: var(--card-bg);
         border-radius: 15px;
         padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        transition: transform 0.2s;
+        box-shadow: 0 4px 15px var(--shadow-color);
+        transition: transform 0.2s, box-shadow 0.2s;
         border-left: 4px solid #2e86c1;
+        color: var(--text-primary);
     }
     
     .metric-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        box-shadow: 0 8px 25px var(--shadow-color);
     }
     
+    .metric-card .metric-label {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    
+    .metric-card .metric-value {
+        color: var(--text-primary);
+        font-size: 24px;
+        font-weight: bold;
+    }
+    
+    /* ===== STATUS BOXES ===== */
+    .scenario-normal {
+        background: var(--success-bg);
+        border-left: 5px solid #28a745;
+        padding: 15px;
+        border-radius: 10px;
+        color: var(--text-primary);
+    }
+    
+    .scenario-dry {
+        background: var(--warning-bg);
+        border-left: 5px solid #ffc107;
+        padding: 15px;
+        border-radius: 10px;
+        color: var(--text-primary);
+    }
+    
+    .scenario-critical {
+        background: var(--danger-bg);
+        border-left: 5px solid #dc3545;
+        padding: 15px;
+        border-radius: 10px;
+        color: var(--text-primary);
+    }
+    
+    /* ===== SIDEBAR ===== */
+    [data-testid="stSidebar"] {
+        background-color: var(--bg-secondary) !important;
+        border-right: 1px solid var(--border-color);
+    }
+    
+    [data-testid="stSidebar"] .stMarkdown {
+        color: var(--text-primary);
+    }
+    
+    /* ===== BUTTONS ===== */
     .stButton > button {
         border-radius: 10px;
         font-weight: 600;
         transition: all 0.3s;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
     }
     
     .stButton > button:hover {
         transform: scale(1.02);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 15px var(--shadow-color);
+    }
+    
+    /* ===== METRIC (Streamlit) ===== */
+    [data-testid="stMetricValue"] {
+        color: var(--text-primary) !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: var(--text-secondary) !important;
+    }
+    
+    /* ===== INFO/WARNING/SUCCESS BOXES ===== */
+    .stAlert {
+        background-color: var(--card-bg) !important;
+        color: var(--text-primary) !important;
+    }
+    
+    /* ===== EXPANDER ===== */
+    .streamlit-expanderHeader {
+        background-color: var(--card-bg) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border-color) !important;
+    }
+    
+    /* ===== INFO BOX ===== */
+    .info-box {
+        background: var(--info-bg);
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #2196F3;
+        color: var(--text-primary);
+    }
+    
+    .success-box {
+        background: var(--success-bg);
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #28a745;
+        color: var(--text-primary);
+    }
+    
+    .warning-box {
+        background: var(--warning-bg);
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #ffc107;
+        color: var(--text-primary);
+    }
+    
+    /* ===== DATAFRAME ===== */
+    .stDataFrame {
+        background: var(--card-bg) !important;
+        color: var(--text-primary) !important;
+    }
+    
+    /* ===== PLOTLY ===== */
+    .js-plotly-plot .plotly {
+        background: transparent !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ============================================================================
-# HEADER WITH BACKGROUND IMAGE (using local file)
+# HEADER WITH BACKGROUND IMAGE
 # ============================================================================
 # Check if local image exists
 header_image = "data/INGA.jpg"
@@ -132,14 +277,14 @@ else:
 st.markdown(f"""
 <style>
     .header-container {{
-        background: linear-gradient(135deg, rgba(26, 82, 118, 0.85), rgba(46, 134, 193, 0.75)), 
+        background: linear-gradient(135deg, rgba(26, 82, 118, 0.92), rgba(46, 134, 193, 0.85)), 
                     {header_bg};
         background-size: cover;
         background-position: center;
         padding: 40px 30px;
         border-radius: 20px;
         margin-bottom: 30px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         border: 1px solid rgba(255,255,255,0.1);
     }}
 </style>
@@ -157,7 +302,7 @@ st.markdown(f"""
                 <span class="header-badge" style="margin-left: 10px;">🔄 Live: {datetime.now().strftime('%H:%M:%S')}</span>
             </div>
         </div>
-        <div style="text-align: right; color: rgba(255,255,255,0.8); font-size: 12px;">
+        <div style="text-align: right; color: rgba(255,255,255,0.85); font-size: 12px;">
             <div>8 × 160 MW Turbines</div>
             <div>58 m Gross Head</div>
             <div>2,200 m³/s Intake</div>
@@ -310,14 +455,12 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     
     date_range = get_date_range(data_history)
     
-    # Title
     title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#1a5276'), alignment=TA_CENTER)
     story.append(Paragraph("🏭 INGA II HYDROELECTRIC PLANT", title_style))
     story.append(Paragraph(f"Real-Time Monitoring Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Paragraph(f"Data Period: {date_range}", styles['Normal']))
     story.append(Spacer(1, 20))
     
-    # Metrics table
     metrics_data = [
         ['Metric', 'Value'],
         ['⚡ Power', f"{latest_data.get('hydropower', 0):,} MW"],
@@ -341,7 +484,6 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     story.append(table)
     story.append(Spacer(1, 20))
     
-    # Scenario & Recommendation
     story.append(Paragraph("🎯 Scenario & AI Recommendation", styles['Heading2']))
     story.append(Paragraph(f"<b>Scenario:</b> {scenario_result.get('scenario', 'NORMAL')}", styles['Normal']))
     story.append(Paragraph(f"<b>Confidence:</b> {scenario_result.get('confidence', 0):.1%}", styles['Normal']))
@@ -351,7 +493,6 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     story.append(Paragraph(f"<b>Message:</b> {recommendation.get('message', 'N/A')}", styles['Normal']))
     story.append(Spacer(1, 20))
     
-    # Forecast
     if forecast:
         story.append(Paragraph("📊 7-Day Forecast", styles['Heading2']))
         forecast_data = [['Day', 'Predicted Inflow (m³/s)']]
@@ -372,7 +513,6 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
         story.append(forecast_table)
         story.append(Spacer(1, 20))
     
-    # Footer
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Paragraph("INGA II AI Monitoring System | Powered by Streamlit", styles['Normal']))
     

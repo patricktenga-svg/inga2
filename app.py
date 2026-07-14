@@ -57,6 +57,9 @@ RECOMMENDATION_MESSAGES = {
 def generate_html_report(data_history, latest_data, scenario_result, recommendation, forecast):
     """Generate an HTML report with all monitoring data"""
     
+    if not data_history or not latest_data:
+        return "<html><body><h1>No data available</h1></body></html>"
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -88,44 +91,43 @@ def generate_html_report(data_history, latest_data, scenario_result, recommendat
         <div class="metric-grid">
             <div class="metric-card">
                 <div>⚡ Power</div>
-                <div class="metric-value">{latest_data['hydropower']:,} MW</div>
+                <div class="metric-value">{latest_data.get('hydropower', 0):,} MW</div>
             </div>
             <div class="metric-card">
                 <div>💧 Inflow</div>
-                <div class="metric-value">{latest_data['inflow']:,} m³/s</div>
+                <div class="metric-value">{latest_data.get('inflow', 0):,} m³/s</div>
             </div>
             <div class="metric-card">
                 <div>📦 Storage</div>
-                <div class="metric-value">{latest_data['storage']/1e6:.0f} Mm³</div>
+                <div class="metric-value">{latest_data.get('storage', 0)/1e6:.0f} Mm³</div>
             </div>
             <div class="metric-card">
                 <div>🚰 Irrigation</div>
-                <div class="metric-value">{latest_data['irrigation']:,} m³/s</div>
+                <div class="metric-value">{latest_data.get('irrigation', 0):,} m³/s</div>
             </div>
         </div>
         
         <div class="section">
             <h2>🎯 Scenario & Recommendation</h2>
-            <p><strong>Scenario:</strong> <span class="scenario-{scenario_result['scenario'].lower().replace(' ', '')}">{scenario_result['scenario']}</span></p>
-            <p><strong>Confidence:</strong> {scenario_result['confidence']:.1%}</p>
-            <p><strong>AI Recommendation:</strong> {recommendation['action']}</p>
-            <p><strong>Recommended Turbine:</strong> {recommendation['turbine']} m³/s</p>
-            <p><strong>Recommended Irrigation:</strong> {recommendation['irrigation']} m³/s</p>
-            <p><strong>Message:</strong> {recommendation['message']}</p>
+            <p><strong>Scenario:</strong> <span class="scenario-{scenario_result.get('scenario', 'NORMAL').lower()}">{scenario_result.get('scenario', 'NORMAL')}</span></p>
+            <p><strong>Confidence:</strong> {scenario_result.get('confidence', 0):.1%}</p>
+            <p><strong>AI Recommendation:</strong> {recommendation.get('action', 'N/A')}</p>
+            <p><strong>Recommended Turbine:</strong> {recommendation.get('turbine', 0)} m³/s</p>
+            <p><strong>Recommended Irrigation:</strong> {recommendation.get('irrigation', 0)} m³/s</p>
+            <p><strong>Message:</strong> {recommendation.get('message', 'N/A')}</p>
         </div>
         
         <div class="section">
             <h2>📊 Forecast (7 days ahead)</h2>
             <table>
                 <tr><th>Day</th><th>Predicted Inflow (m³/s)</th></tr>
-                {''.join([f'<tr><td>Day {i+1}</td><td>{forecast[i]:.0f}</td></tr>' for i in range(len(forecast))])}
+                {''.join([f'<tr><td>Day {i+1}</td><td>{forecast[i]:.0f}</td></tr>' for i in range(len(forecast))]) if forecast else '<tr><td colspan="2">No forecast available</td></tr>'}
             </table>
         </div>
         
         <div class="section">
             <h2>📋 System Status</h2>
             <p><strong>Records Collected:</strong> {len(data_history)}</p>
-            <p><strong>Frame:</strong> {len(data_history)}</p>
             <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         </div>
         
@@ -141,6 +143,16 @@ def generate_html_report(data_history, latest_data, scenario_result, recommendat
 def generate_pdf_report(data_history, latest_data, scenario_result, recommendation, forecast):
     """Generate a PDF report"""
     buffer = io.BytesIO()
+    
+    if not data_history or not latest_data:
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        styles = getSampleStyleSheet()
+        story = []
+        story.append(Paragraph("No data available for report", styles['Heading1']))
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+    
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     styles = getSampleStyleSheet()
     story = []
@@ -154,11 +166,11 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     # Metrics table
     metrics_data = [
         ['Metric', 'Value'],
-        ['⚡ Power', f"{latest_data['hydropower']:,} MW"],
-        ['💧 Inflow', f"{latest_data['inflow']:,} m³/s"],
-        ['📦 Storage', f"{latest_data['storage']/1e6:.0f} Mm³"],
-        ['🚰 Irrigation', f"{latest_data['irrigation']:,} m³/s"],
-        ['Head', f"{latest_data['head']} m"]
+        ['⚡ Power', f"{latest_data.get('hydropower', 0):,} MW"],
+        ['💧 Inflow', f"{latest_data.get('inflow', 0):,} m³/s"],
+        ['📦 Storage', f"{latest_data.get('storage', 0)/1e6:.0f} Mm³"],
+        ['🚰 Irrigation', f"{latest_data.get('irrigation', 0):,} m³/s"],
+        ['Head', f"{latest_data.get('head', 0)} m"]
     ]
     
     table = Table(metrics_data, colWidths=[200, 200])
@@ -177,33 +189,34 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     
     # Scenario & Recommendation
     story.append(Paragraph("🎯 Scenario & AI Recommendation", styles['Heading2']))
-    story.append(Paragraph(f"<b>Scenario:</b> {scenario_result['scenario']}", styles['Normal']))
-    story.append(Paragraph(f"<b>Confidence:</b> {scenario_result['confidence']:.1%}", styles['Normal']))
-    story.append(Paragraph(f"<b>AI Recommendation:</b> {recommendation['action']}", styles['Normal']))
-    story.append(Paragraph(f"<b>Recommended Turbine:</b> {recommendation['turbine']} m³/s", styles['Normal']))
-    story.append(Paragraph(f"<b>Recommended Irrigation:</b> {recommendation['irrigation']} m³/s", styles['Normal']))
-    story.append(Paragraph(f"<b>Message:</b> {recommendation['message']}", styles['Normal']))
+    story.append(Paragraph(f"<b>Scenario:</b> {scenario_result.get('scenario', 'NORMAL')}", styles['Normal']))
+    story.append(Paragraph(f"<b>Confidence:</b> {scenario_result.get('confidence', 0):.1%}", styles['Normal']))
+    story.append(Paragraph(f"<b>AI Recommendation:</b> {recommendation.get('action', 'N/A')}", styles['Normal']))
+    story.append(Paragraph(f"<b>Recommended Turbine:</b> {recommendation.get('turbine', 0)} m³/s", styles['Normal']))
+    story.append(Paragraph(f"<b>Recommended Irrigation:</b> {recommendation.get('irrigation', 0)} m³/s", styles['Normal']))
+    story.append(Paragraph(f"<b>Message:</b> {recommendation.get('message', 'N/A')}", styles['Normal']))
     story.append(Spacer(1, 20))
     
     # Forecast
-    story.append(Paragraph("📊 7-Day Forecast", styles['Heading2']))
-    forecast_data = [['Day', 'Predicted Inflow (m³/s)']]
-    for i, val in enumerate(forecast):
-        forecast_data.append([f'Day {i+1}', f'{val:.0f}'])
-    
-    forecast_table = Table(forecast_data, colWidths=[150, 150])
-    forecast_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5276')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(forecast_table)
-    story.append(Spacer(1, 20))
+    if forecast:
+        story.append(Paragraph("📊 7-Day Forecast", styles['Heading2']))
+        forecast_data = [['Day', 'Predicted Inflow (m³/s)']]
+        for i, val in enumerate(forecast):
+            forecast_data.append([f'Day {i+1}', f'{val:.0f}'])
+        
+        forecast_table = Table(forecast_data, colWidths=[150, 150])
+        forecast_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5276')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(forecast_table)
+        story.append(Spacer(1, 20))
     
     # Footer
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
@@ -222,14 +235,14 @@ def filter_data_by_period(data_history, start_date=None, end_date=None):
     if not data_history:
         return []
     
-    # Convert to DataFrame
     df = pd.DataFrame(data_history)
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    
-    if start_date:
-        df = df[df['timestamp'] >= pd.to_datetime(start_date)]
-    if end_date:
-        df = df[df['timestamp'] <= pd.to_datetime(end_date)]
+    if 'timestamp' in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+        if start_date:
+            df = df[df['timestamp'] >= pd.to_datetime(start_date)]
+        if end_date:
+            df = df[df['timestamp'] <= pd.to_datetime(end_date)]
     
     return df.to_dict('records')
 
@@ -243,7 +256,6 @@ def export_filtered_data(data_history, format='csv', metrics=None, start_date=No
     
     df = pd.DataFrame(filtered_data)
     
-    # Select only requested metrics
     if metrics:
         available_metrics = [m for m in metrics if m in df.columns]
         if available_metrics:
@@ -362,6 +374,16 @@ def main():
     st.markdown("### 🤖 AI-Powered Real-Time Monitoring & Decision Support")
     st.markdown("---")
     
+    # Initialize session state FIRST
+    if 'data_history' not in st.session_state:
+        st.session_state.data_history = []
+    if 'simulation_running' not in st.session_state:
+        st.session_state.simulation_running = True
+    if 'frame_count' not in st.session_state:
+        st.session_state.frame_count = 0
+    if 'models_loaded' not in st.session_state:
+        st.session_state.models_loaded = False
+    
     # Sidebar
     with st.sidebar:
         st.markdown("## ⚙️ Controls")
@@ -379,9 +401,11 @@ def main():
         st.markdown("---")
         st.markdown("### 📅 Data Export with Filters")
         
-        # Date range filter
-        if 'data_history' in st.session_state and len(st.session_state.data_history) > 0:
-            # Get min and max dates from data
+        # Show data status
+        data_count = len(st.session_state.data_history)
+        st.metric("Data Records", data_count)
+        
+        if data_count > 0:
             df_history = pd.DataFrame(st.session_state.data_history)
             if 'timestamp' in df_history.columns:
                 df_history['timestamp'] = pd.to_datetime(df_history['timestamp'])
@@ -394,7 +418,6 @@ def main():
                 with col_date2:
                     end_date = st.date_input("End Date", max_date, min_value=min_date, max_value=max_date)
                 
-                # Metric selection
                 available_metrics = ['timestamp', 'inflow', 'storage', 'head', 'turbine', 'irrigation', 'hydropower']
                 selected_metrics = st.multiselect(
                     "Select metrics to export",
@@ -402,7 +425,6 @@ def main():
                     default=['timestamp', 'inflow', 'hydropower', 'storage']
                 )
                 
-                # Export format
                 export_format = st.radio("Export format", ["CSV", "Excel"], horizontal=True)
                 
                 if st.button("📥 Export Filtered Data", use_container_width=True):
@@ -423,19 +445,17 @@ def main():
                             mime=mime,
                             use_container_width=True
                         )
-            else:
-                st.info("No data available. Wait for data collection.")
         else:
-            st.info("No data available. Wait for data collection.")
+            st.info("⏳ Collecting data... Please wait.")
         
         st.markdown("---")
         st.markdown("### 📄 Report Download")
         
-        if 'data_history' in st.session_state and len(st.session_state.data_history) > 0:
+        if data_count > 0:
             if st.button("📄 Generate Report", use_container_width=True):
                 with st.spinner("Generating report..."):
                     latest_data = st.session_state.data_history[-1] if st.session_state.data_history else None
-                    if latest_data:
+                    if latest_data and st.session_state.models_loaded:
                         inflows = [d['inflow'] for d in st.session_state.data_history]
                         forecast = forecaster.predict(inflows) if forecaster.is_trained else [42000] * 7
                         scenario_result = classifier.predict(latest_data['inflow'], latest_data['storage'])
@@ -480,21 +500,10 @@ def main():
                                 mime="text/html",
                                 use_container_width=True
                             )
+                    else:
+                        st.warning("⚠️ Not enough data or models not loaded yet.")
         else:
-            st.info("No data available. Wait for data collection.")
-        
-        st.markdown("---")
-        st.markdown("### 📈 Data Status")
-        if 'data_history' in st.session_state and len(st.session_state.data_history) > 0:
-            st.metric("Records collected", len(st.session_state.data_history))
-    
-    # Initialize session state
-    if 'data_history' not in st.session_state:
-        st.session_state.data_history = []
-    if 'simulation_running' not in st.session_state:
-        st.session_state.simulation_running = True
-    if 'frame_count' not in st.session_state:
-        st.session_state.frame_count = 0
+            st.info("⏳ No data available. Wait for data collection to generate a report.")
     
     # Load historical data
     with st.spinner("📂 Loading historical data..."):
@@ -503,6 +512,7 @@ def main():
     # Load models with historical data
     with st.spinner("🤖 Loading and training AI models..."):
         forecaster, classifier, anomaly_detector, rl_agent = load_models(historical_inflows)
+        st.session_state.models_loaded = True
     
     simulator = RealTimeDataSimulator()
     placeholder = st.empty()
@@ -521,6 +531,7 @@ def main():
     
     st.markdown("---")
     
+    # Main loop
     while st.session_state.simulation_running:
         st.session_state.frame_count += 1
         frame = st.session_state.frame_count
@@ -642,7 +653,7 @@ def main():
             else:
                 st.success("✅ All systems normal")
             
-            st.caption(f"🕐 Last update: {datetime.now().strftime('%H:%M:%S')} | Frame: {frame}")
+            st.caption(f"🕐 Last update: {datetime.now().strftime('%H:%M:%S')} | Records: {len(st.session_state.data_history)}")
         
         time.sleep(update_freq)
 

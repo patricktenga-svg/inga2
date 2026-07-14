@@ -2,11 +2,13 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import os
 import io
 import base64
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -28,6 +30,25 @@ from utils.visualizations import (
 )
 
 st.set_page_config(page_title="INGA II - AI Monitoring", page_icon="🏭", layout="wide")
+
+
+# ============================================================================
+# RECOMMENDATION MESSAGES IN ENGLISH
+# ============================================================================
+RECOMMENDATION_MESSAGES = {
+    'NORMAL': {
+        'message': '✅ Optimal conditions – Maximum production recommended',
+        'action': 'PEAK'
+    },
+    'DRY': {
+        'message': '⚠️ Dry conditions – Balanced strategy recommended',
+        'action': 'NOMINAL'
+    },
+    'VERY DRY': {
+        'message': '🔴 Severe drought – Reduce releases immediately',
+        'action': 'LOW POWER'
+    }
+}
 
 
 # ============================================================================
@@ -194,6 +215,51 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
 
 
 # ============================================================================
+# DATA EXPORT WITH FILTERS
+# ============================================================================
+def filter_data_by_period(data_history, start_date=None, end_date=None):
+    """Filter data by date range"""
+    if not data_history:
+        return []
+    
+    # Convert to DataFrame
+    df = pd.DataFrame(data_history)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    
+    if start_date:
+        df = df[df['timestamp'] >= pd.to_datetime(start_date)]
+    if end_date:
+        df = df[df['timestamp'] <= pd.to_datetime(end_date)]
+    
+    return df.to_dict('records')
+
+
+def export_filtered_data(data_history, format='csv', metrics=None, start_date=None, end_date=None):
+    """Export filtered data with selected metrics"""
+    filtered_data = filter_data_by_period(data_history, start_date, end_date)
+    
+    if not filtered_data:
+        return None
+    
+    df = pd.DataFrame(filtered_data)
+    
+    # Select only requested metrics
+    if metrics:
+        available_metrics = [m for m in metrics if m in df.columns]
+        if available_metrics:
+            df = df[available_metrics]
+    
+    if format == 'csv':
+        return df.to_csv(index=False).encode('utf-8')
+    elif format == 'excel':
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='INGA II Data')
+        return output.getvalue()
+    return None
+
+
+# ============================================================================
 # Loading historical data
 # ============================================================================
 @st.cache_data
@@ -311,15 +377,65 @@ def main():
         """)
         
         st.markdown("---")
+        st.markdown("### 📅 Data Export with Filters")
+        
+        # Date range filter
+        if 'data_history' in st.session_state and len(st.session_state.data_history) > 0:
+            # Get min and max dates from data
+            df_history = pd.DataFrame(st.session_state.data_history)
+            if 'timestamp' in df_history.columns:
+                df_history['timestamp'] = pd.to_datetime(df_history['timestamp'])
+                min_date = df_history['timestamp'].min().date()
+                max_date = df_history['timestamp'].max().date()
+                
+                col_date1, col_date2 = st.columns(2)
+                with col_date1:
+                    start_date = st.date_input("Start Date", min_date, min_value=min_date, max_value=max_date)
+                with col_date2:
+                    end_date = st.date_input("End Date", max_date, min_value=min_date, max_value=max_date)
+                
+                # Metric selection
+                available_metrics = ['timestamp', 'inflow', 'storage', 'head', 'turbine', 'irrigation', 'hydropower']
+                selected_metrics = st.multiselect(
+                    "Select metrics to export",
+                    available_metrics,
+                    default=['timestamp', 'inflow', 'hydropower', 'storage']
+                )
+                
+                # Export format
+                export_format = st.radio("Export format", ["CSV", "Excel"], horizontal=True)
+                
+                if st.button("📥 Export Filtered Data", use_container_width=True):
+                    data = export_filtered_data(
+                        st.session_state.data_history,
+                        format=export_format.lower(),
+                        metrics=selected_metrics,
+                        start_date=start_date,
+                        end_date=end_date
+                    )
+                    if data:
+                        file_ext = "csv" if export_format.lower() == "csv" else "xlsx"
+                        mime = "text/csv" if export_format.lower() == "csv" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        st.download_button(
+                            label=f"📥 Download {export_format}",
+                            data=data,
+                            file_name=f"inga_ii_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}",
+                            mime=mime,
+                            use_container_width=True
+                        )
+            else:
+                st.info("No data available. Wait for data collection.")
+        else:
+            st.info("No data available. Wait for data collection.")
+        
+        st.markdown("---")
         st.markdown("### 📄 Report Download")
         
         if 'data_history' in st.session_state and len(st.session_state.data_history) > 0:
             if st.button("📄 Generate Report", use_container_width=True):
                 with st.spinner("Generating report..."):
-                    # Get latest data
                     latest_data = st.session_state.data_history[-1] if st.session_state.data_history else None
                     if latest_data:
-                        # Get predictions
                         inflows = [d['inflow'] for d in st.session_state.data_history]
                         forecast = forecaster.predict(inflows) if forecaster.is_trained else [42000] * 7
                         scenario_result = classifier.predict(latest_data['inflow'], latest_data['storage'])
@@ -331,7 +447,6 @@ def main():
                         ]
                         recommendation = rl_agent.get_recommendation(scenario_result['scenario'], state)
                         
-                        # Generate HTML report
                         html_report = generate_html_report(
                             st.session_state.data_history,
                             latest_data,
@@ -340,7 +455,6 @@ def main():
                             forecast
                         )
                         
-                        # Generate PDF report
                         pdf_buffer = generate_pdf_report(
                             st.session_state.data_history,
                             latest_data,
@@ -349,7 +463,6 @@ def main():
                             forecast
                         )
                         
-                        # Download buttons
                         col1, col2 = st.columns(2)
                         with col1:
                             st.download_button(
@@ -369,27 +482,6 @@ def main():
                             )
         else:
             st.info("No data available. Wait for data collection.")
-        
-        st.markdown("---")
-        st.markdown("### 💾 Data Export")
-        if st.button("📥 Export to CSV", use_container_width=True):
-            csv_data = export_to_csv(st.session_state.data_history)
-            if csv_data:
-                st.download_button(
-                    label="Download CSV",
-                    data=csv_data,
-                    file_name=f"inga_ii_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
-        if st.button("📊 Export to Excel", use_container_width=True):
-            excel_data = export_to_excel(st.session_state.data_history)
-            if excel_data:
-                st.download_button(
-                    label="Download Excel",
-                    data=excel_data,
-                    file_name=f"inga_ii_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
         
         st.markdown("---")
         st.markdown("### 📈 Data Status")
@@ -454,7 +546,17 @@ def main():
             current_data['head'] / 70,
             current_data['turbine'] / 2200
         ]
-        recommendation = rl_agent.get_recommendation(scenario_result['scenario'], state)
+        
+        # Get recommendation with English messages
+        scenario_name = scenario_result['scenario']
+        rec_data = RECOMMENDATION_MESSAGES.get(scenario_name, RECOMMENDATION_MESSAGES['NORMAL'])
+        
+        recommendation = {
+            'action': rec_data['action'],
+            'turbine': 1800 if scenario_name == 'NORMAL' else (1200 if scenario_name == 'DRY' else 500),
+            'irrigation': 350 if scenario_name == 'NORMAL' else (250 if scenario_name == 'DRY' else 150),
+            'message': rec_data['message']
+        }
         
         with placeholder.container():
             # Metrics row

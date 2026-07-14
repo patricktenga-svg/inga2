@@ -50,7 +50,7 @@ st.markdown("""
     /* Header with background image */
     .header-container {
         background: linear-gradient(135deg, rgba(26, 82, 118, 0.85), rgba(46, 134, 193, 0.75)), 
-                    url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Inga_Dam_DRC_2020.jpg/1280px-Inga_Dam_DRC_2020.jpg');
+                    url('data/INGA.jpg');
         background-size: cover;
         background-position: center;
         padding: 40px 30px;
@@ -118,8 +118,33 @@ st.markdown("""
 
 
 # ============================================================================
-# HEADER WITH BACKGROUND IMAGE
+# HEADER WITH BACKGROUND IMAGE (using local file)
 # ============================================================================
+# Check if local image exists
+header_image = "data/INGA.jpg"
+if os.path.exists(header_image):
+    with open(header_image, "rb") as f:
+        image_data = base64.b64encode(f.read()).decode()
+    header_bg = f"url('data:image/jpeg;base64,{image_data}')"
+else:
+    header_bg = "url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Inga_Dam_DRC_2020.jpg/1280px-Inga_Dam_DRC_2020.jpg')"
+
+st.markdown(f"""
+<style>
+    .header-container {{
+        background: linear-gradient(135deg, rgba(26, 82, 118, 0.85), rgba(46, 134, 193, 0.75)), 
+                    {header_bg};
+        background-size: cover;
+        background-position: center;
+        padding: 40px 30px;
+        border-radius: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        border: 1px solid rgba(255,255,255,0.1);
+    }}
+</style>
+""", unsafe_allow_html=True)
+
 st.markdown(f"""
 <div class="header-container">
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -147,15 +172,15 @@ st.markdown(f"""
 # ============================================================================
 RECOMMENDATION_MESSAGES = {
     'NORMAL': {
-        'message': '✅ Optimal conditions – Maximum production recommended',
+        'message': 'Optimal conditions – Maximum production recommended',
         'action': 'PEAK'
     },
     'DRY': {
-        'message': '⚠️ Dry conditions – Balanced strategy recommended',
+        'message': 'Dry conditions – Balanced strategy recommended',
         'action': 'NOMINAL'
     },
     'VERY DRY': {
-        'message': '🔴 Severe drought – Reduce releases immediately',
+        'message': 'Severe drought – Reduce releases immediately',
         'action': 'LOW POWER'
     }
 }
@@ -164,11 +189,26 @@ RECOMMENDATION_MESSAGES = {
 # ============================================================================
 # REPORT GENERATOR
 # ============================================================================
+def get_date_range(data_history):
+    """Get dynamic date range from data"""
+    if not data_history:
+        return "No data"
+    
+    df = pd.DataFrame(data_history)
+    if 'timestamp' in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        min_date = df['timestamp'].min().strftime('%Y-%m-%d %H:%M:%S')
+        max_date = df['timestamp'].max().strftime('%Y-%m-%d %H:%M:%S')
+        return f"{min_date} to {max_date}"
+    return "No date range"
+
 def generate_html_report(data_history, latest_data, scenario_result, recommendation, forecast):
     """Generate an HTML report with all monitoring data"""
     
     if not data_history or not latest_data:
         return "<html><body><h1>No data available</h1></body></html>"
+    
+    date_range = get_date_range(data_history)
     
     html = f"""
     <!DOCTYPE html>
@@ -196,6 +236,7 @@ def generate_html_report(data_history, latest_data, scenario_result, recommendat
         <div class="header">
             <h1>🏭 INGA II HYDROELECTRIC PLANT</h1>
             <p>Real-Time Monitoring Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p style="font-size: 12px; opacity: 0.8;">Data Period: {date_range}</p>
         </div>
         
         <div class="metric-grid">
@@ -267,11 +308,16 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     styles = getSampleStyleSheet()
     story = []
     
+    date_range = get_date_range(data_history)
+    
+    # Title
     title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#1a5276'), alignment=TA_CENTER)
     story.append(Paragraph("🏭 INGA II HYDROELECTRIC PLANT", title_style))
     story.append(Paragraph(f"Real-Time Monitoring Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    story.append(Paragraph(f"Data Period: {date_range}", styles['Normal']))
     story.append(Spacer(1, 20))
     
+    # Metrics table
     metrics_data = [
         ['Metric', 'Value'],
         ['⚡ Power', f"{latest_data.get('hydropower', 0):,} MW"],
@@ -295,6 +341,7 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     story.append(table)
     story.append(Spacer(1, 20))
     
+    # Scenario & Recommendation
     story.append(Paragraph("🎯 Scenario & AI Recommendation", styles['Heading2']))
     story.append(Paragraph(f"<b>Scenario:</b> {scenario_result.get('scenario', 'NORMAL')}", styles['Normal']))
     story.append(Paragraph(f"<b>Confidence:</b> {scenario_result.get('confidence', 0):.1%}", styles['Normal']))
@@ -304,6 +351,7 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     story.append(Paragraph(f"<b>Message:</b> {recommendation.get('message', 'N/A')}", styles['Normal']))
     story.append(Spacer(1, 20))
     
+    # Forecast
     if forecast:
         story.append(Paragraph("📊 7-Day Forecast", styles['Heading2']))
         forecast_data = [['Day', 'Predicted Inflow (m³/s)']]
@@ -324,6 +372,7 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
         story.append(forecast_table)
         story.append(Spacer(1, 20))
     
+    # Footer
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Paragraph("INGA II AI Monitoring System | Powered by Streamlit", styles['Normal']))
     
@@ -398,7 +447,6 @@ def load_historical_data(filepath="data/historical_inflows.csv"):
 @st.cache_resource
 def load_models():
     """Load or train all ML models"""
-    # Load historical data first
     historical_inflows = load_historical_data("data/historical_inflows.csv")
     
     forecaster = InflowForecaster(model_path="models/inga_ii")

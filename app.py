@@ -384,7 +384,12 @@ def main():
     if 'models_loaded' not in st.session_state:
         st.session_state.models_loaded = False
     
-    # Sidebar
+    # Load models FIRST (before sidebar uses them)
+    with st.spinner("🤖 Loading and training AI models..."):
+        forecaster, classifier, anomaly_detector, rl_agent = load_models(None)
+        st.session_state.models_loaded = True
+    
+    # Sidebar (now models are loaded)
     with st.sidebar:
         st.markdown("## ⚙️ Controls")
         update_freq = st.slider("Update frequency (seconds)", 1, 10, 3)
@@ -505,14 +510,17 @@ def main():
         else:
             st.info("⏳ No data available. Wait for data collection to generate a report.")
     
-    # Load historical data
+    # Load historical data (after sidebar)
     with st.spinner("📂 Loading historical data..."):
         historical_inflows = load_historical_data("data/historical_inflows.csv")
     
-    # Load models with historical data
-    with st.spinner("🤖 Loading and training AI models..."):
-        forecaster, classifier, anomaly_detector, rl_agent = load_models(historical_inflows)
-        st.session_state.models_loaded = True
+    # Train models with historical data if available
+    if historical_inflows is not None and len(historical_inflows) > 100:
+        with st.spinner("📈 Training LSTM with historical data..."):
+            if not forecaster.is_trained:
+                forecaster.train(historical_inflows, epochs=50)
+                forecaster.save("models/inga_ii")
+                st.success("✅ LSTM model trained with historical data!")
     
     simulator = RealTimeDataSimulator()
     placeholder = st.empty()

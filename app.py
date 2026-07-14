@@ -176,11 +176,11 @@ def main():
         st.session_state.frame_count = 0
     
     # Load historical data
-    with st.spinner("📂 Chargement des données historiques..."):
+    with st.spinner("📂 Loading historical data..."):
         historical_inflows = load_historical_data("data/historical_inflows.csv")
     
     # Load models with historical data
-    with st.spinner("🤖 Chargement et entraînement des modèles IA..."):
+    with st.spinner("🤖 Loading and training AI models..."):
         forecaster, classifier, anomaly_detector, rl_agent = load_models(historical_inflows)
     
     simulator = RealTimeDataSimulator()

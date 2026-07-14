@@ -29,7 +29,171 @@ from utils.visualizations import (
     create_reservoir_dashboard, create_scenario_radar
 )
 
-st.set_page_config(page_title="INGA II - AI Monitoring", page_icon="🏭", layout="wide")
+st.set_page_config(
+    page_title="INGA II - AI Monitoring",
+    page_icon="🏭",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+
+# ============================================================================
+# CUSTOM CSS WITH BACKGROUND IMAGE
+# ============================================================================
+st.markdown("""
+<style>
+    /* Main background */
+    .stApp {
+        background-color: #f0f4f8;
+    }
+    
+    /* Header with background image */
+    .header-container {
+        background: linear-gradient(135deg, rgba(26, 82, 118, 0.85), rgba(46, 134, 193, 0.75)), 
+                    url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Inga_Dam_DRC_2020.jpg/1280px-Inga_Dam_DRC_2020.jpg');
+        background-size: cover;
+        background-position: center;
+        padding: 40px 30px;
+        border-radius: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .header-title {
+        color: white;
+        font-size: 42px;
+        font-weight: 700;
+        text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        margin: 0;
+        letter-spacing: 1px;
+    }
+    
+    .header-subtitle {
+        color: rgba(255,255,255,0.9);
+        font-size: 18px;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+        margin-top: 5px;
+    }
+    
+    .header-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        padding: 5px 20px;
+        border-radius: 20px;
+        color: white;
+        font-size: 12px;
+        margin-top: 10px;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    /* Metric cards */
+    .metric-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        transition: transform 0.2s;
+        border-left: 4px solid #2e86c1;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    
+    /* Status boxes */
+    .scenario-normal {
+        background: #d4edda;
+        border-left: 5px solid #28a745;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    .scenario-dry {
+        background: #fff3cd;
+        border-left: 5px solid #ffc107;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    .scenario-critical {
+        background: #f8d7da;
+        border-left: 5px solid #dc3545;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    /* Sidebar styling */
+    .sidebar-section {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .stButton > button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    /* Info boxes */
+    .info-box {
+        background: #e8f4fd;
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #2196F3;
+    }
+    
+    .success-box {
+        background: #d4edda;
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #28a745;
+    }
+    
+    .warning-box {
+        background: #fff3cd;
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #ffc107;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================================
+# HEADER WITH BACKGROUND IMAGE
+# ============================================================================
+st.markdown(f"""
+<div class="header-container">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <h1 class="header-title">🏭 INGA II HYDROELECTRIC PLANT</h1>
+            <p class="header-subtitle">🤖 AI-Powered Real-Time Monitoring & Decision Support</p>
+            <div style="margin-top: 15px;">
+                <span class="header-badge">⚡ 1,280 MW Capacity</span>
+                <span class="header-badge" style="margin-left: 10px;">🌊 Congo River, DRC</span>
+                <span class="header-badge" style="margin-left: 10px;">🔄 Live: {datetime.now().strftime('%H:%M:%S')}</span>
+            </div>
+        </div>
+        <div style="text-align: right; color: rgba(255,255,255,0.8); font-size: 12px;">
+            <div>8 × 160 MW Turbines</div>
+            <div>58 m Gross Head</div>
+            <div>2,200 m³/s Intake</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ============================================================================
@@ -157,13 +321,11 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     styles = getSampleStyleSheet()
     story = []
     
-    # Title
     title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#1a5276'), alignment=TA_CENTER)
     story.append(Paragraph("🏭 INGA II HYDROELECTRIC PLANT", title_style))
     story.append(Paragraph(f"Real-Time Monitoring Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Spacer(1, 20))
     
-    # Metrics table
     metrics_data = [
         ['Metric', 'Value'],
         ['⚡ Power', f"{latest_data.get('hydropower', 0):,} MW"],
@@ -187,7 +349,6 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     story.append(table)
     story.append(Spacer(1, 20))
     
-    # Scenario & Recommendation
     story.append(Paragraph("🎯 Scenario & AI Recommendation", styles['Heading2']))
     story.append(Paragraph(f"<b>Scenario:</b> {scenario_result.get('scenario', 'NORMAL')}", styles['Normal']))
     story.append(Paragraph(f"<b>Confidence:</b> {scenario_result.get('confidence', 0):.1%}", styles['Normal']))
@@ -197,7 +358,6 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
     story.append(Paragraph(f"<b>Message:</b> {recommendation.get('message', 'N/A')}", styles['Normal']))
     story.append(Spacer(1, 20))
     
-    # Forecast
     if forecast:
         story.append(Paragraph("📊 7-Day Forecast", styles['Heading2']))
         forecast_data = [['Day', 'Predicted Inflow (m³/s)']]
@@ -218,7 +378,6 @@ def generate_pdf_report(data_history, latest_data, scenario_result, recommendati
         story.append(forecast_table)
         story.append(Spacer(1, 20))
     
-    # Footer
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Paragraph("INGA II AI Monitoring System | Powered by Streamlit", styles['Normal']))
     
@@ -281,10 +440,8 @@ def load_historical_data(filepath="data/historical_inflows.csv"):
         df = pd.read_csv(filepath)
         df['date'] = pd.to_datetime(df['date'])
         df = df.sort_values('date')
-        st.success(f"✅ Historical data loaded: {len(df)} days ({df['date'].min().date()} to {df['date'].max().date()})")
         return df['inflow'].values
     else:
-        st.warning(f"⚠️ File {filepath} not found. Using synthetic data instead.")
         synthetic_inflows = np.random.normal(42000, 5000, 2000)
         return synthetic_inflows
 
@@ -302,22 +459,16 @@ def load_models(historical_inflows=None):
     
     if not forecaster.is_trained:
         if historical_inflows is not None and len(historical_inflows) > 100:
-            with st.spinner("📈 Training LSTM model with historical data..."):
-                forecaster.train(historical_inflows, epochs=50)
-                forecaster.save("models/inga_ii")
-            st.success("✅ LSTM model trained successfully!")
-        else:
-            st.warning("⚠️ Insufficient historical data. The LSTM model will use a default prediction mechanism.")
+            forecaster.train(historical_inflows, epochs=50)
+            forecaster.save("models/inga_ii")
     
     if not classifier.is_trained:
-        with st.spinner("🎯 Training scenario classifier..."):
-            classifier.train()
-            classifier.save("models/inga_ii")
+        classifier.train()
+        classifier.save("models/inga_ii")
     
     if not anomaly_detector.is_trained:
-        with st.spinner("🚨 Training anomaly detector..."):
-            anomaly_detector.train()
-            anomaly_detector.save("models/inga_ii")
+        anomaly_detector.train()
+        anomaly_detector.save("models/inga_ii")
     
     return forecaster, classifier, anomaly_detector, rl_agent
 
@@ -370,10 +521,6 @@ class RealTimeDataSimulator:
 # Main Function
 # ============================================================================
 def main():
-    st.title("🏭 INGA II HYDROELECTRIC PLANT - DRC")
-    st.markdown("### 🤖 AI-Powered Real-Time Monitoring & Decision Support")
-    st.markdown("---")
-    
     # Initialize session state FIRST
     if 'data_history' not in st.session_state:
         st.session_state.data_history = []
@@ -383,13 +530,27 @@ def main():
         st.session_state.frame_count = 0
     if 'models_loaded' not in st.session_state:
         st.session_state.models_loaded = False
+    if 'initialized' not in st.session_state:
+        st.session_state.initialized = False
     
-    # Load models FIRST (before sidebar uses them)
-    with st.spinner("🤖 Loading and training AI models..."):
-        forecaster, classifier, anomaly_detector, rl_agent = load_models(None)
-        st.session_state.models_loaded = True
+    # Load models ONCE
+    if not st.session_state.models_loaded:
+        with st.spinner("🤖 Loading AI models..."):
+            historical_inflows = load_historical_data("data/historical_inflows.csv")
+            forecaster, classifier, anomaly_detector, rl_agent = load_models(historical_inflows)
+            st.session_state.forecaster = forecaster
+            st.session_state.classifier = classifier
+            st.session_state.anomaly_detector = anomaly_detector
+            st.session_state.rl_agent = rl_agent
+            st.session_state.models_loaded = True
     
-    # Sidebar (now models are loaded)
+    # Get models from session state
+    forecaster = st.session_state.forecaster
+    classifier = st.session_state.classifier
+    anomaly_detector = st.session_state.anomaly_detector
+    rl_agent = st.session_state.rl_agent
+    
+    # Sidebar
     with st.sidebar:
         st.markdown("## ⚙️ Controls")
         update_freq = st.slider("Update frequency (seconds)", 1, 10, 3)
@@ -404,11 +565,10 @@ def main():
         """)
         
         st.markdown("---")
-        st.markdown("### 📅 Data Export with Filters")
+        st.markdown("### 📅 Data Export")
         
-        # Show data status
         data_count = len(st.session_state.data_history)
-        st.metric("Data Records", data_count)
+        st.metric("📊 Records", data_count)
         
         if data_count > 0:
             df_history = pd.DataFrame(st.session_state.data_history)
@@ -425,14 +585,14 @@ def main():
                 
                 available_metrics = ['timestamp', 'inflow', 'storage', 'head', 'turbine', 'irrigation', 'hydropower']
                 selected_metrics = st.multiselect(
-                    "Select metrics to export",
+                    "Select metrics",
                     available_metrics,
                     default=['timestamp', 'inflow', 'hydropower', 'storage']
                 )
                 
-                export_format = st.radio("Export format", ["CSV", "Excel"], horizontal=True)
+                export_format = st.radio("Format", ["CSV", "Excel"], horizontal=True)
                 
-                if st.button("📥 Export Filtered Data", use_container_width=True):
+                if st.button("📥 Export Data", use_container_width=True):
                     data = export_filtered_data(
                         st.session_state.data_history,
                         format=export_format.lower(),
@@ -451,95 +611,74 @@ def main():
                             use_container_width=True
                         )
         else:
-            st.info("⏳ Collecting data... Please wait.")
+            st.info("⏳ Collecting data...")
         
         st.markdown("---")
-        st.markdown("### 📄 Report Download")
+        st.markdown("### 📄 Report")
         
-        if data_count > 0:
+        if data_count > 5:
             if st.button("📄 Generate Report", use_container_width=True):
                 with st.spinner("Generating report..."):
-                    latest_data = st.session_state.data_history[-1] if st.session_state.data_history else None
-                    if latest_data and st.session_state.models_loaded:
-                        inflows = [d['inflow'] for d in st.session_state.data_history]
-                        forecast = forecaster.predict(inflows) if forecaster.is_trained else [42000] * 7
-                        scenario_result = classifier.predict(latest_data['inflow'], latest_data['storage'])
-                        state = [
-                            latest_data['storage'] / 800e6,
-                            latest_data['inflow'] / 60000,
-                            latest_data['head'] / 70,
-                            latest_data['turbine'] / 2200
-                        ]
-                        recommendation = rl_agent.get_recommendation(scenario_result['scenario'], state)
-                        
-                        html_report = generate_html_report(
-                            st.session_state.data_history,
-                            latest_data,
-                            scenario_result,
-                            recommendation,
-                            forecast
+                    latest_data = st.session_state.data_history[-1]
+                    inflows = [d['inflow'] for d in st.session_state.data_history]
+                    forecast = forecaster.predict(inflows) if forecaster.is_trained else [42000] * 7
+                    scenario_result = classifier.predict(latest_data['inflow'], latest_data['storage'])
+                    state = [
+                        latest_data['storage'] / 800e6,
+                        latest_data['inflow'] / 60000,
+                        latest_data['head'] / 70,
+                        latest_data['turbine'] / 2200
+                    ]
+                    recommendation = rl_agent.get_recommendation(scenario_result['scenario'], state)
+                    
+                    html_report = generate_html_report(
+                        st.session_state.data_history,
+                        latest_data,
+                        scenario_result,
+                        recommendation,
+                        forecast
+                    )
+                    
+                    pdf_buffer = generate_pdf_report(
+                        st.session_state.data_history,
+                        latest_data,
+                        scenario_result,
+                        recommendation,
+                        forecast
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.download_button(
+                            label="📊 Download PDF",
+                            data=pdf_buffer,
+                            file_name=f"inga_ii_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
                         )
-                        
-                        pdf_buffer = generate_pdf_report(
-                            st.session_state.data_history,
-                            latest_data,
-                            scenario_result,
-                            recommendation,
-                            forecast
+                    with col2:
+                        st.download_button(
+                            label="🌐 Download HTML",
+                            data=html_report,
+                            file_name=f"inga_ii_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                            mime="text/html",
+                            use_container_width=True
                         )
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.download_button(
-                                label="📊 Download PDF Report",
-                                data=pdf_buffer,
-                                file_name=f"inga_ii_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                mime="application/pdf",
-                                use_container_width=True
-                            )
-                        with col2:
-                            st.download_button(
-                                label="🌐 Download HTML Report",
-                                data=html_report,
-                                file_name=f"inga_ii_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                                mime="text/html",
-                                use_container_width=True
-                            )
-                    else:
-                        st.warning("⚠️ Not enough data or models not loaded yet.")
         else:
-            st.info("⏳ No data available. Wait for data collection to generate a report.")
+            st.info("⏳ Need at least 5 records for a report.")
     
-    # Load historical data (after sidebar)
-    with st.spinner("📂 Loading historical data..."):
-        historical_inflows = load_historical_data("data/historical_inflows.csv")
-    
-    # Train models with historical data if available
-    if historical_inflows is not None and len(historical_inflows) > 100:
-        with st.spinner("📈 Training LSTM with historical data..."):
-            if not forecaster.is_trained:
-                forecaster.train(historical_inflows, epochs=50)
-                forecaster.save("models/inga_ii")
-                st.success("✅ LSTM model trained with historical data!")
-    
-    simulator = RealTimeDataSimulator()
-    placeholder = st.empty()
-    
-    # Display info about training
+    # Display AI status
     if forecaster.is_trained:
-        st.success("""
-        ✅ **All AI models are ready and trained!**  
-        - LSTM Forecaster: ✅  
-        - Scenario Classifier: ✅  
-        - Anomaly Detector: ✅  
-        - RL Agent: ✅
-        """)
+        st.success("✅ **All AI models ready** | LSTM ✓ Classifier ✓ Anomaly ✓ RL ✓")
     else:
-        st.warning("⚠️ The system is currently using default predictions until more historical data becomes available.")
+        st.warning("⚠️ Using default predictions until more data is available.")
     
     st.markdown("---")
     
     # Main loop
+    simulator = RealTimeDataSimulator()
+    placeholder = st.empty()
+    
     while st.session_state.simulation_running:
         st.session_state.frame_count += 1
         frame = st.session_state.frame_count
@@ -566,7 +705,6 @@ def main():
             current_data['turbine'] / 2200
         ]
         
-        # Get recommendation with English messages
         scenario_name = scenario_result['scenario']
         rec_data = RECOMMENDATION_MESSAGES.get(scenario_name, RECOMMENDATION_MESSAGES['NORMAL'])
         
@@ -581,7 +719,7 @@ def main():
             # Metrics row
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("⚡ Power", f"{current_data['hydropower']:,} MW", 
-                       delta=f"{current_data['hydropower'] - 1280:.0f} vs nominal")
+                       delta=f"{current_data['hydropower'] - 1280:.0f}")
             col2.metric("💧 Inflow", f"{current_data['inflow']:,} m³/s")
             col3.metric("📦 Storage", f"{current_data['storage']/1e6:.0f} Mm³")
             col4.metric("🚰 Irrigation", f"{current_data['irrigation']:,} m³/s")
@@ -608,7 +746,7 @@ def main():
                 st.metric("Recommended Irrigation", f"{recommendation['irrigation']} m³/s")
                 st.caption(recommendation['message'])
             
-            # Gauges with unique keys
+            # Gauges
             col_g1, col_g2, col_g3 = st.columns(3)
             with col_g1:
                 st.plotly_chart(
@@ -638,30 +776,20 @@ def main():
             
             # Reservoir Dashboard
             if len(st.session_state.data_history) > 50:
-                with st.expander("🏭 View Full Reservoir Dashboard"):
+                with st.expander("🏭 View Full Dashboard"):
                     st.plotly_chart(
                         create_reservoir_dashboard(st.session_state.data_history), 
                         use_container_width=True,
                         key=f"dashboard_{frame}"
                     )
             
-            # Training history (if available)
-            if forecaster.training_losses and len(forecaster.training_losses['train']) > 0:
-                with st.expander("📊 View LSTM Training History"):
-                    import plotly.graph_objects as go
-                    fig_loss = go.Figure()
-                    fig_loss.add_trace(go.Scatter(y=forecaster.training_losses['train'], name='Train Loss'))
-                    fig_loss.add_trace(go.Scatter(y=forecaster.training_losses['val'], name='Val Loss'))
-                    fig_loss.update_layout(title="Training History", xaxis_title="Epoch", yaxis_title="Loss")
-                    st.plotly_chart(fig_loss, use_container_width=True, key=f"loss_{frame}")
-            
             # Anomaly
             if anomaly['is_anomaly']:
-                st.warning(f"🚨 Anomaly detected: {anomaly['reason'] or 'ML model detected unusual pattern'}")
+                st.warning(f"🚨 Anomaly: {anomaly['reason'] or 'Unusual pattern detected'}")
             else:
                 st.success("✅ All systems normal")
             
-            st.caption(f"🕐 Last update: {datetime.now().strftime('%H:%M:%S')} | Records: {len(st.session_state.data_history)}")
+            st.caption(f"🕐 {datetime.now().strftime('%H:%M:%S')} | Records: {len(st.session_state.data_history)}")
         
         time.sleep(update_freq)
 

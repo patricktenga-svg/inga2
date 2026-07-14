@@ -103,38 +103,6 @@ st.markdown("""
         box-shadow: 0 8px 25px rgba(0,0,0,0.12);
     }
     
-    /* Status boxes */
-    .scenario-normal {
-        background: #d4edda;
-        border-left: 5px solid #28a745;
-        padding: 15px;
-        border-radius: 10px;
-    }
-    
-    .scenario-dry {
-        background: #fff3cd;
-        border-left: 5px solid #ffc107;
-        padding: 15px;
-        border-radius: 10px;
-    }
-    
-    .scenario-critical {
-        background: #f8d7da;
-        border-left: 5px solid #dc3545;
-        padding: 15px;
-        border-radius: 10px;
-    }
-    
-    /* Sidebar styling */
-    .sidebar-section {
-        background: white;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    
-    /* Buttons */
     .stButton > button {
         border-radius: 10px;
         font-weight: 600;
@@ -144,28 +112,6 @@ st.markdown("""
     .stButton > button:hover {
         transform: scale(1.02);
         box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    }
-    
-    /* Info boxes */
-    .info-box {
-        background: #e8f4fd;
-        border-radius: 10px;
-        padding: 15px;
-        border-left: 4px solid #2196F3;
-    }
-    
-    .success-box {
-        background: #d4edda;
-        border-radius: 10px;
-        padding: 15px;
-        border-left: 4px solid #28a745;
-    }
-    
-    .warning-box {
-        background: #fff3cd;
-        border-radius: 10px;
-        padding: 15px;
-        border-left: 4px solid #ffc107;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -450,17 +396,19 @@ def load_historical_data(filepath="data/historical_inflows.csv"):
 # Loading models
 # ============================================================================
 @st.cache_resource
-def load_models(historical_inflows=None):
+def load_models():
     """Load or train all ML models"""
+    # Load historical data first
+    historical_inflows = load_historical_data("data/historical_inflows.csv")
+    
     forecaster = InflowForecaster(model_path="models/inga_ii")
     classifier = ScenarioClassifier(model_path="models/inga_ii")
     anomaly_detector = AnomalyDetector(model_path="models/inga_ii")
     rl_agent = RLAgent(model_path="models/inga_ii")
     
-    if not forecaster.is_trained:
-        if historical_inflows is not None and len(historical_inflows) > 100:
-            forecaster.train(historical_inflows, epochs=50)
-            forecaster.save("models/inga_ii")
+    if not forecaster.is_trained and historical_inflows is not None and len(historical_inflows) > 100:
+        forecaster.train(historical_inflows, epochs=50)
+        forecaster.save("models/inga_ii")
     
     if not classifier.is_trained:
         classifier.train()
@@ -528,16 +476,11 @@ def main():
         st.session_state.simulation_running = True
     if 'frame_count' not in st.session_state:
         st.session_state.frame_count = 0
-    if 'models_loaded' not in st.session_state:
-        st.session_state.models_loaded = False
-    if 'initialized' not in st.session_state:
-        st.session_state.initialized = False
     
-    # Load models ONCE
-    if not st.session_state.models_loaded:
+    # Load models ONCE and store in session state
+    if 'forecaster' not in st.session_state:
         with st.spinner("🤖 Loading AI models..."):
-            historical_inflows = load_historical_data("data/historical_inflows.csv")
-            forecaster, classifier, anomaly_detector, rl_agent = load_models(historical_inflows)
+            forecaster, classifier, anomaly_detector, rl_agent = load_models()
             st.session_state.forecaster = forecaster
             st.session_state.classifier = classifier
             st.session_state.anomaly_detector = anomaly_detector
